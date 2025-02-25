@@ -58,6 +58,11 @@ class Parser:
         self.error(f'not implemented yet: {reason}',
                    'this is not supported', node.loc)
 
+    def is_docstring(self, py_stmt: py_ast.stmt) -> bool:
+        return (isinstance(py_stmt, py_ast.Expr) and
+                isinstance(py_stmt.value, py_ast.Constant) and
+                isinstance(py_stmt.value.value, str))
+
     def from_py_Module(self, py_mod: py_ast.Module) -> spy.ast.Module:
         loc = Loc(self.filename, 1, 1, 0, -1)
         mod = spy.ast.Module(loc=loc, filename=self.filename, decls=[])
@@ -85,8 +90,12 @@ class Parser:
             elif isinstance(py_stmt, py_ast.Import):
                 importdecls = self.from_py_Import(py_stmt)
                 mod.decls += importdecls
+            elif self.is_docstring(py_stmt):
+                # XXX ignore it for now
+                pass
             else:
                 msg = 'only function and variable definitions are allowed at global scope'
+                breakpoint()
                 self.error(msg, 'this is not allowed here', py_stmt.loc)
         #
         return mod
@@ -229,6 +238,9 @@ class Parser:
             elif isinstance(py_stmt, py_ast.FunctionDef):
                 funcdef = self.from_py_stmt_FunctionDef(py_stmt)
                 methods.append(funcdef)
+            elif self.is_docstring(py_stmt):
+                # XXX ignore it for now
+                pass
             else:
                 msg = 'only fields are allowed inside a class def'
                 self.error(msg, 'this is not allowed here', py_stmt.loc)
